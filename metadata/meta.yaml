@@ -1,0 +1,2072 @@
+version: 1.0
+schema: stage
+description: "Metadata for SQL-RAG system. Contains table definitions, column descriptions, rules, glossary, and example SQL."
+
+tables:
+
+  stage.app_main_2024:
+    description: "Application-level data. One row per loan application."
+    columns:
+      - name: applicationid
+        description: "Unique identifier assigned to each loan application."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_code
+        description: "Code representing the sales/loan channel: DTM=Direct to Merchant, DTC=Direct to Customer, FSL=Fresh Start Lending."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_product
+        description: "Product identifier within a channel (internal product SKU/name)."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_name
+        description: "Human-readable name of the acquisition channel."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_program
+        description: "Marketing or program name associated with the channel acquisition."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_type
+        description: "Type of channel (e.g., digital, in-store, partner)."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_group
+        description: "Grouping of loan channels into higher-level categories (e.g., Digital vs Physical)."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: clientid
+        description: "Identifier of the client institution or business using the lending platform."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: merchantid
+        description: "Identifier of the merchant associated with the application."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: businessname
+        description: "Registered business name of the merchant/store associated with the application."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: merch_phone_main
+        description: "Primary phone number for the merchant contact."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_affiliateid
+        description: "Identifier for affiliate or referral partner that sent the application."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_affiliatename
+        description: "Name of the affiliate or referral partner."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_referenceid
+        description: "Reference identifier provided by the referral source."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_url
+        description: "Landing page or referral URL that originated the application."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_sourceip
+        description: "IP address of the user at the time of referral or application submission."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_domain
+        description: "Domain name of the referral source or landing page."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_medium
+        description: "Marketing medium for the referral (e.g., email, cpc, organic)."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_campaign
+        description: "Marketing campaign identifier from referral tracking."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_term
+        description: "Paid-search keyword or term associated with the referral."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_content
+        description: "Content identifier for A/B testing or ad variation."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_gclid
+        description: "Google Click ID for paid search attribution."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_ppccode
+        description: "Internal PPC tracking code."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_preapprovedcode
+        description: "Preapproval or prequalification code applied at referral."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_promo
+        description: "Promotion or coupon code supplied via referral."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_affiliatesourceid
+        description: "Secondary affiliate source identifier used by partner networks."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_affiliatesourcename
+        description: "Alias or display name of affiliate source."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referral_consenttoremarket
+        description: "Flag indicating consent for remarketing."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: partner_sid_code
+        description: "Partner or sub-partner identifier (SID)."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: prospect_date
+        description: "Date the prospect entered the funnel."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationinitiateddate
+        description: "Date borrower started the application."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationdate
+        description: "Date the application was submitted."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationapprovaldate
+        description: "Date the application received approval."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: updatedon
+        description: "Timestamp of the last update."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationstatus_statusid
+        description: "Internal status identifier for the application lifecycle."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationstatus_code
+        description: "Canonical application status code."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationstatus_name
+        description: "Human-readable application status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationstatus_label
+        description: "UI label for application status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationstatus_date
+        description: "Timestamp of latest status update."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationstatus_merchantportal
+        description: "Flag indicating update came from merchant portal."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referralcoordinator_id
+        description: "Identifier of referral coordinator."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: referralcoordinator_name
+        description: "Name of referral coordinator."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fslopener_id
+        description: "Identifier of FSL product opener."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fslopener_name
+        description: "Name of FSL product opener."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: loancoordinator_id
+        description: "Loan coordinator ID."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: loancoordinator_name
+        description: "Loan coordinator name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: creditspecialist_id
+        description: "Credit specialist ID."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: creditspecialist_name
+        description: "Credit specialist name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: qaspecialist_id
+        description: "QA specialist ID."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: qaspecialist_name
+        description: "QA specialist name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fraudspecialist_id
+        description: "Fraud specialist ID."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fraudspecialist_name
+        description: "Fraud specialist name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: relationshipmanager_id
+        description: "Relationship manager ID."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: relationshipmanager_name
+        description: "Relationship manager name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: merchant_agent
+        description: "Merchant agent or representative."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: customerid
+        description: "Unique borrower identifier."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_firstname
+        description: "Borrower's first name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_middlename
+        description: "Borrower's middle name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_lastname
+        description: "Borrower's last name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_address
+        description: "Primary borrower address."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_address2
+        description: "Secondary borrower address."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_city
+        description: "Borrower city."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_state
+        description: "Borrower state."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_zipcode
+        description: "Borrower ZIP code."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_country
+        description: "Borrower country code."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_addresstype
+        description: "Address type."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_phone_number
+        description: "Primary borrower phone number."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_phone_ext
+        description: "Phone extension."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_phone_type
+        description: "Type of phone number."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_phone_isverified
+        description: "Flag whether phone is verified."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_phone_number_cell
+        description: "Cell phone number."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_phone_number_home
+        description: "Home phone number."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_phone_number_work
+        description: "Work phone number."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_ssn
+        description: "Masked/hashed SSN."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_dob
+        description: "Borrower date of birth."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_email
+        description: "Borrower email address."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: mla_flag
+        description: "Military Lending Act flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_employmentstatus
+        description: "Borrower-reported employment status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_source
+        description: "Borrower-reported income source."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_occupation
+        description: "Borrower occupation."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_employername
+        description: "Employer name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_employerphone
+        description: "Employer phone."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_employmentyears
+        description: "Years at employment."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_grossmonthlyincome
+        description: "Gross monthly income reported."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_rentorown
+        description: "Rent or own flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_monthlyrentormortgage
+        description: "Monthly housing payment."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: stated_taxfilingstatuscode
+        description: "Tax filing status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: income_source
+        description: "Verified income source."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: income_amount
+        description: "Verified income amount."
+        type: numeric
+        nullable: true
+        default: null
+        is_primary: false
+      - name: employment_source
+        description: "Employment verification source."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: employment_status
+        description: "Normalized employment status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrower_bank_acctid
+        description: "Linked borrower bank account ID."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: reference_fullname
+        description: "Reference full name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: reference_phone
+        description: "Reference phone number."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: reference_relationship
+        description: "Relationship to reference."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: purpose_code
+        description: "Purpose code for the application."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: purpose_label
+        description: "Human-readable purpose label."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: servicedate
+        description: "Servicing event date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: originalrequestedamount
+        description: "Original requested amount."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: requestedamount
+        description: "Requested loan amount."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: state_origination
+        description: "State where loan/application originated."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: allowcontact
+        description: "Contact permission flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: ispersonreceivingservice
+        description: "Flag indicating borrower is receiving services."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: hasapplicationconsented
+        description: "Borrower consent flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: consenttoforward
+        description: "Consent to forward application."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: consentelectroniccommunication
+        description: "Consent for electronic communication."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: consenttocredit
+        description: "Consent for credit checks."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: consenttotermsandconditions
+        description: "Consent for terms and conditions."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: consenttoreceivemessages
+        description: "Consent for receiving messages."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: ach_enabled
+        description: "ACH repayment enabled flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: submitted_name
+        description: "Name of person/system submitting application."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: submitted_date
+        description: "Submission date."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_sent
+        description: "Flag if contract sent."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_sentdate
+        description: "Contract sent date."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: enrolledwithdsc
+        description: "Flag indicating DSC enrollment."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decisionid
+        description: "Decision identifier."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_source
+        description: "Source of credit decision."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_status
+        description: "Decision status (internal use)."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decisiondate
+        description: "Decision date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_status_final
+        description: "Final decision status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_status_pagaya
+        description: "Pagaya engine decision status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_status_theorem
+        description: "Theorem engine decision status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: regbdecisiondate
+        description: "Regulatory decision date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: plan_internalname
+        description: "Plan internal name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: plan_internaldescriptor
+        description: "Plan descriptor."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fico
+        description: "Borrower’s FICO score."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: vantage4
+        description: "Borrower’s VantageScore 4.0."
+        type: numeric
+        nullable: true
+        default: null
+        is_primary: false
+      - name: promo_code
+        description: "Promotion code."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: promo_label
+        description: "Promo label."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: maxapprovedamount
+        description: "Maximum approved amount."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: approval_term
+        description: "Approved loan term."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: approval_intrate
+        description: "Approved interest rate."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: approval_apr
+        description: "Approved APR."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: total_offers_approved_gds
+        description: "Number of approved GDS offers."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: approved_offers_gds
+        description: "List/count of approved GDS offers."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_reason1
+        description: "Primary decline reason."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_reason2
+        description: "Secondary decline reason."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_reason3
+        description: "Tertiary decline reason."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_reason4
+        description: "Fourth decline reason."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_reason5
+        description: "Fifth decline reason."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_factors1
+        description: "Primary decline factor."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_factors2
+        description: "Secondary decline factor."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_factors3
+        description: "Tertiary decline factor."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_factors4
+        description: "Fourth decline factor."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_factors5
+        description: "Fifth decline factor."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_emailsent
+        description: "Flag if decline email was sent."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_emailsentdate
+        description: "Decline email sent date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_outsidebureau_decision
+        description: "Flag if outside bureau involved."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fsl_preselectiondate
+        description: "FSL preselection date."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fastpass_isruleenabled
+        description: "FastPass rules enabled flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fastpass_complete
+        description: "FastPass completion flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: appnotes
+        description: "Internal application notes."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: ibvcomplete
+        description: "Identity/bank verification completion flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_generatedon
+        description: "Contract generated timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_requestedamount
+        description: "Contract requested amount."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_term
+        description: "Contract term."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_rate
+        description: "Contract interest rate."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_paymentamount
+        description: "Contract payment amount."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_apr
+        description: "Contract APR."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_originationfees
+        description: "Contract origination fees."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_originationpercentage
+        description: "Origination fee percentage."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_payoutamount
+        description: "Payout amount per contract."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_payoutpercentage
+        description: "Payout percentage."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_expirationdate
+        description: "Contract expiration date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_riskband
+        description: "Risk band at contract approval."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_approvalamount
+        description: "Amount approved on contract."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_downpayment
+        description: "Downpayment amount."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_amounttaken
+        description: "Amount taken at contract."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_zipterm
+        description: "ZIP code based term data."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_firstpaymentdate
+        description: "First payment date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_finalpaymentdate
+        description: "Final payment date."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_regularpaymentamount
+        description: "Regular payment amount."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_finalpaymentamount
+        description: "Final payment amount."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_totalpaymentamount
+        description: "Total payment over contract life."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_financecharge
+        description: "Finance charge."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_principalamount
+        description: "Principal amount in contract."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_contractapr
+        description: "Computed APR on contract."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_notedate
+        description: "Contract note date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_latefee
+        description: "Late fee amount."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_nsffee
+        description: "NSF fee."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_maxnsffee
+        description: "Max NSF fee."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_maxlatefee
+        description: "Max late fee."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: lender_code
+        description: "Lender code."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: lender_label
+        description: "Lender label."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: lenderstatus_code
+        description: "Lender status code."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: lenderstatus_name
+        description: "Lender status name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: lenderstatus_label
+        description: "Lender status label."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: randomnumber
+        description: "Random number field."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: servicer_boarding
+        description: "Loan servicing provider."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: loangroup_boarding
+        description: "Loan group classification."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: visible
+        description: "Visibility flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: exclude_review_email
+        description: "Exclude from review email flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: universalapp_flag
+        description: "Universal application flag."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: issuingbank
+        description: "Issuing bank."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fastscreenid
+        description: "Fast-screen identifier."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: downpaymentid
+        description: "Downpayment record identifier."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: lusa_decision_model
+        description: "Lending USA decision model."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: updateddate
+        description: "Normalized update date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: servicedate_full
+        description: "Full servicing date timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: applicationstatusdate_full
+        description: "Full application status date."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: updatedon_full
+        description: "Full update timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fsl_preselectiondate_full
+        description: "Full FSL preselection date."
+        type: text
+        nullable: true
+        default: null
+        is_primary: false
+      - name: vantage4_backup
+        description: "Backup VantageScore."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decisiondate_full
+        description: "Decision date full timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: regbdecisiondate_full
+        description: "Regulatory decision full timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_declined_emailsentdate_full
+        description: "Decline email full timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_expirationdate_full
+        description: "Contract expiration full timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_firstpaymentdate_full
+        description: "Contract first payment full timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: contract_notedate_full
+        description: "Contract note full timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+
+rules:
+      # ========================================
+      # DATA COVERAGE CONTEXT
+      # ========================================
+      - "DATABASE COVERAGE: July 2023 - December 2024 (applications), January 2024 - February 2025 (funded loans)"
+      - "Most complete data period: January 2024 - December 2024"
+      - "When user asks about 'last quarter', 'recent data', or relative time periods, refer to the most recent complete period in the dataset."
+      
+      # ========================================
+      # CORE SQL GENERATION RULES
+      # ========================================
+      - "Use decision_source instead of decision_status when determining approval logic."
+      - "Do NOT use submitted_date under any circumstance."
+      - "PostgreSQL does NOT support INTERVAL 'quarter'."
+      - "Always replace 1 quarter with INTERVAL '3 months'."
+      - "Always replace 1 year with INTERVAL '12 months'."
+      - "Any SQL using INTERVAL 'quarter' is INVALID and must be rewritten."
+      - "sql = sql.replace(\"≥\", \" >=\").replace(\"≤\", \"<=\")"
+      
+      # ========================================
+      # DATE COLUMN SELECTION RULES
+      # ========================================
+      - "Always use one of the following date columns ONLY, based on context:"
+      - "  - applicationdate for application volume / submission trends"
+      - "  - applicationinitiateddate for first application timing"
+      - "  - applicationapprovaldate for approval-related metrics"
+      - "  - fundeddate for funding metrics (from loan_main_2024 table)"
+      
+      # ========================================
+      # DATE INTERPRETATION RULES FOR HISTORICAL DATA
+      # ========================================
+      - "When user mentions relative time periods (last quarter, last month, Q4, etc.):"
+      - "  - 'last quarter' or 'Q4' = Q4 2024 (Oct-Dec 2024): '2024-10-01' to '2024-12-31'"
+      - "  - 'Q3 2024' = Jul-Sep 2024: '2024-07-01' to '2024-09-30'"
+      - "  - 'Q2 2024' = Apr-Jun 2024: '2024-04-01' to '2024-06-30'"
+      - "  - 'Q1 2024' = Jan-Mar 2024: '2024-01-01' to '2024-03-31'"
+      - "  - 'last month' = December 2024: '2024-12-01' to '2024-12-31'"
+      - "ALWAYS use explicit date literals (e.g., '2024-10-01'), NEVER use CURRENT_DATE for historical data queries."
+      - "ALWAYS include BOTH lower AND upper date bounds in WHERE clauses."
+      - "When user asks about trends or 'dip in volume', generate GROUP BY queries with monthly aggregation."
+      
+      # ========================================
+      # CRITICAL: CHANNEL FILTERING RULES (DTM/DTC/FSL)
+      # ========================================
+      - "MANDATORY: For all channel-based filtering (DTM, DTC, FSL), ALWAYS use channel_group with ILIKE pattern matching."
+      - "NEVER use channel_code for filtering DTM/DTC/FSL under ANY circumstance."
+      - "Channel filtering standard syntax:"
+      - "  - For DTM: WHERE channel_group ILIKE '%DTM%'"
+      - "  - For DTC: WHERE channel_group ILIKE '%DTC%'"
+      - "  - For FSL: WHERE channel_group ILIKE '%FSL%'"
+      - "Rationale: channel_group contains the hierarchical channel classification. channel_code is internal and unreliable."
+      - "FSL = Fresh Start Lending, DTM = Direct to Merchant, DTC = Direct to Consumer"
+      - "NEVER use channel_product or channel_code to filter by DTM/DTC/FSL."
+      - "When user mentions 'DTM applications', 'FSL loans', 'DTC volume' → ALWAYS use channel_group ILIKE."
+      
+      # ========================================
+      # INCOME COLUMN USAGE RULES
+      # ========================================
+      - "Income-related questions MUST use income_amount."
+      - "NEVER use stated_grossmonthlyincome for calculations, aggregation, correlation, averages, sums, or comparisons."
+      - "stated_grossmonthlyincome is VARCHAR and may only be used for display or filtering, never for math."
+      
+      # ========================================
+      # TABLE ALIAS & QUALIFICATION RULES
+      # ========================================
+      - "When multiple tables are used, ALL column references must be fully qualified with table aliases."
+      - "If a column exists in both app_main_2024 and loan_main_2024 (e.g., channel_group, channel_code), always use app_main_2024 unless explicitly stated otherwise."
+      - "If a column exists in more than one table, ALWAYS prefix it with the table alias."
+      - "Never use unqualified column names when joins are present."
+      - "CRITICAL: When joining stage.app_main_2024 and stage.loan_main_2024, NEVER use unqualified column names in SELECT, GROUP BY, ORDER BY, or WHERE clauses."
+      - "The following columns exist in BOTH tables and MUST ALWAYS be fully qualified with table alias:"
+      - "  - channel_group → always use app.channel_group (from app_main_2024 preferred)"
+      - "  - channel_code → always use app.channel_code"
+      - "  - channel_name → always use app.channel_name"
+      - "  - channel_product → always use app.channel_product"
+      - "  - channel_type → always use app.channel_type"
+      - "  - merchantid, businessname, purpose_code, purpose_label"
+      - "  - servicer_boarding, loangroup_boarding, issuingbank"
+      - "Forbidden: SELECT channel_group, ... (without alias) when both tables are joined"
+      - "Correct: SELECT app.channel_group, ..."
+      - "Column ownership is strict: if a column exists in only one table, it MUST be referenced from that table only."
+      - "arix_probabilityofbad exists ONLY in stage.loan_main_2024 and MUST ALWAYS be referenced as loan.arix_probabilityofbad."
+      
+      # ========================================
+      # SINGLE TABLE vs MULTI-TABLE QUERIES
+      # ========================================
+      - "SINGLE TABLE QUERIES: When query uses ONLY ONE table, do NOT use table alias prefixes on columns."
+      - "  Example CORRECT: SELECT COUNT(*) FROM stage.app_main_2024 WHERE channel_group ILIKE '%DTM%'"
+      - "  Example WRONG: SELECT COUNT(*) FROM stage.app_main_2024 WHERE app.channel_group ILIKE '%DTM%'"
+      - "MULTI-TABLE QUERIES: When joining tables, MUST define aliases and use them consistently."
+      - "  Example: FROM stage.app_main_2024 app JOIN stage.loan_main_2024 loan ON app.applicationid = loan.loannumber"
+      
+      # ========================================
+      # CTE RULES
+      # ========================================
+      - "If a query uses CTEs, it MUST start with WITH."
+      - "Do not generate CTEs unless the query starts with WITH."
+      
+      # ========================================
+      # DIVISION BY ZERO PROTECTION
+      # ========================================
+      - "CRITICAL: Always protect against division by zero in percentage calculations."
+      - "Use NULLIF(denominator, 0) or CASE WHEN denominator > 0 to avoid division errors."
+      - "For approval rates and percentages, if denominator is 0, return 0.0 instead of error."
+      - "Formula: CASE WHEN total > 0 THEN (approved::numeric / total) * 100 ELSE 0.0 END"
+      - "When calculating any percentage or rate (approval rate, funding rate, conversion rate, etc.)"
+      - "ALWAYS use NULLIF(denominator, 0) or CASE to avoid division by zero"
+      - "Return 0.0 when denominator is zero"
+      - "Example: COALESCE(numerator / NULLIF(denominator, 0), 0.0)"
+      
+      # ========================================
+      # UNION QUERY RULES
+      # ========================================
+      - "When using UNION/UNION ALL with ORDER BY or LIMIT, wrap each SELECT in parentheses."
+      - "Format: (SELECT ... ORDER BY ... LIMIT n) UNION ALL (SELECT ... ORDER BY ... LIMIT n)"
+      - "Never write: SELECT ... LIMIT n UNION ALL SELECT ... (This is invalid syntax)"
+      
+      # ========================================
+      # FORBIDDEN COLUMNS
+      # ========================================
+      - "COLUMNS ENDING WITH '_full' ARE FORBIDDEN AND MUST NEVER BE USED IN GENERATED SQL UNLESS THE USER EXPLICITLY MENTIONS THE '_full' COLUMN NAME IN THE QUESTION."
+
+examples:
+      - nl: "How many applications were submitted last month?"
+        sql: "SELECT COUNT(*) FROM stage.app_main_2024 WHERE applicationdate >= '2024-12-01' AND applicationdate <= '2024-12-31';"
+      
+      - nl: "Show FSL applications in August 2024"
+        sql: "SELECT COUNT(*) FROM stage.app_main_2024 WHERE channel_group ILIKE '%FSL%' AND applicationdate >= '2024-08-01' AND applicationdate < '2024-09-01';"
+      
+      - nl: "Is there any dip in app volume for FSL in Aug"
+        sql: "SELECT EXTRACT(MONTH FROM applicationdate) AS month, COUNT(applicationid) AS app_count FROM stage.app_main_2024 WHERE channel_group ILIKE '%FSL%' AND applicationdate >= '2024-01-01' AND applicationdate <= '2024-08-31' GROUP BY EXTRACT(MONTH FROM applicationdate) ORDER BY month;"
+      
+      - nl: "What is total app count for DTM during the last quarter"
+        sql: "SELECT COUNT(applicationid) AS total_app_count FROM stage.app_main_2024 WHERE channel_group ILIKE '%DTM%' AND applicationdate >= '2024-10-01' AND applicationdate <= '2024-12-31';"
+      
+      - nl: "Count of DTM applications in Q3"
+        sql: "SELECT COUNT(*) FROM stage.app_main_2024 WHERE channel_group ILIKE '%DTM%' AND applicationdate >= '2024-07-01' AND applicationdate < '2024-10-01';"
+      
+      - nl: "Show me funded FSL loans with FICO over 700"
+        sql: "SELECT COUNT(*) FROM stage.app_main_2024 app JOIN stage.loan_main_2024 loan ON app.applicationid = loan.loannumber WHERE app.channel_group ILIKE '%FSL%' AND loan.fico > 700;"
+      
+      - nl: "DTC application trend by month in 2024"
+        sql: "SELECT EXTRACT(MONTH FROM applicationdate) AS month, COUNT(applicationid) AS app_count FROM stage.app_main_2024 WHERE channel_group ILIKE '%DTC%' AND applicationdate >= '2024-01-01' AND applicationdate <= '2024-12-31' GROUP BY EXTRACT(MONTH FROM applicationdate) ORDER BY month;"
+
+stage.loan_main_2024:
+    description: "Loan-level dataset representing funded loans and repayment attributes."
+    columns:
+      - name: loannumber
+        description: "Unique loan identifier."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: customerid
+        description: "Borrower identifier linked to application table."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decisionid
+        description: "Decision identifier; non-null = approved loan."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: decision_source
+        description: "Source of credit decision."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: notedate
+        description: "Loan note issuance date."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fundeddate
+        description: "Loan disbursement date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: purchasedate
+        description: "Loan purchase date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: noteprincipal
+        description: "Loan principal amount."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: amountfinanced
+        description: "Total financed amount."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: originationfee
+        description: "Origination fee charged."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: intrate
+        description: "Interest rate."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: apr
+        description: "Annual percentage rate."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: term
+        description: "Loan term duration."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: zipterm
+        description: "ZIP-based term value."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: riskband
+        description: "Risk band classification."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: amountfunded
+        description: "Actual funded amount."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: fico
+        description: "Borrower FICO score."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: vantage4
+        description: "Borrower VantageScore."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: dti
+        description: "Debt-to-income ratio."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: annualincome
+        description: "Borrower's annual income."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: merchantdiscount
+        description: "Merchant discount fee."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: payoutrate
+        description: "Merchant payout rate."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: merchantdiscountrate
+        description: "Merchant discount percentage."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: financecharge
+        description: "Total finance charge."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: achsent_flag
+        description: "ACH event sent flag."
+        type: boolean
+        nullable: true
+        default: null
+        is_primary: false
+      - name: achsent_date
+        description: "ACH event date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: achsent_transactionid
+        description: "ACH transaction ID."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: ach_sameday
+        description: "Flag indicating ACH same-day settlement."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: borrowerach_orig
+        description: "Original borrower bank account reference."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_code
+        description: "Loan acquisition channel."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_name
+        description: "Loan channel name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_program
+        description: "Loan channel program."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_type
+        description: "Loan channel type."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_product
+        description: "Loan channel product."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: channel_group
+        description: "Loan channel group."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: merchantid
+        description: "Merchant associated with loan."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: businessname
+        description: "Business name for merchant."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: purpose_code
+        description: "Purpose code."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: purpose_label
+        description: "Purpose label."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: servicer_boarding
+        description: "Loan servicing provider."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: loangroup_boarding
+        description: "Loan portfolio category."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: purchasedate_investor
+        description: "Investor purchase date."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: serviceconfirm_requestsentdate
+        description: "Service confirm request date."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: serviceconfirm_confirmation
+        description: "Service confirmation flag."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: serviceconfirm_confirmationdate
+        description: "Service confirmation date."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: serviceconfirm_status_code
+        description: "Service confirm status code."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: serviceconfirm_status_label
+        description: "Status label for service confirmation."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: serviceconfirm_statusdate
+        description: "Status change timestamp."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: updateddate
+        description: "Last updated date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: reportdate
+        description: "Reporting date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: arixid
+        description: "ARIX analytic identifier."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: arixstatus
+        description: "ARIX status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: arix_decisionmodel
+        description: "ARIX model name."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: arix_modelscore
+        description: "ARIX model score."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: arix_strategy
+        description: "ARIX strategy label."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: arix_probabilityofbad
+        description: "Probability of default estimate."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: issuingbank
+        description: "Loan issuing bank."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: chargeoffs
+        description: "Charged-off indicator or amount."
+        type: numeric
+        nullable: true
+        default: null
+        is_primary: false
+      - name: reportdate_full
+        description: "Report date full timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: purchasedate_full
+        description: "Purchase date full timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: firstpaymentdate
+        description: "First scheduled payment date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: firstpaymentdate_full
+        description: "Full timestamp for first payment date."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: updateddate_full
+        description: "Full updated date timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: maturitydate
+        description: "Loan maturity date."
+        type: date
+        nullable: true
+        default: null
+        is_primary: false
+      - name: maturitydate_full
+        description: "Full maturity timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: achsend_date_full
+        description: "Full ACH send timestamp."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: serviceconfirm_statusdate_full
+        description: "Full timestamp for service confirm status."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+      - name: paymentfrequency
+        description: "Payment frequency (e.g., monthly)."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: regularpayments
+        description: "Regular payment amount."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: finalpayment
+        description: "Final payment amount."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: mla_intrate
+        description: "MLA interest rate."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: late_fee
+        description: "Late fee amount."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: nsf_fee
+        description: "NSF fee amount."
+        type: integer
+        nullable: true
+        default: null
+        is_primary: false
+      - name: requestedamount
+        description: "Requested loan amount."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: approvalamount
+        description: "Approved loan amount."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: downpayment
+        description: "Downpayment amount."
+        type: double precision
+        nullable: true
+        default: null
+        is_primary: false
+      - name: state
+        description: "State of the borrower."
+        type: character varying
+        nullable: true
+        default: null
+        is_primary: false
+
+    rules:
+      - "Approved loan = decisionid IS NOT NULL."
+      - "Never use decision_status; use decision_source or decisionid."
+      - "Use fundeddate for origination trend unless business says otherwise."
+      - "COLUMNS ENDING WITH '_full' ARE FORBIDDEN AND MUST NEVER BE USED IN GENERATED SQL UNLESS THE USER EXPLICITLY MENTIONS THE '_full' COLUMN NAME IN THE QUESTION."
+      - "arix_probabilityofbad is character varying and may contain invalid values (e.g., 'A', 'N/A'). ALWAYS validate it with: CASE WHEN arix_probabilityofbad ~ '^[0-9.]+$' THEN arix_probabilityofbad::numeric ELSE NULL END"
+      - "When calculating expected_charge_off, use: amountfinanced * NULLIF(valid_numeric_probability, 0)"
+      - "When filtering funded vs not funded applications, NEVER use subqueries (NOT IN / IN). Always use a LEFT JOIN to stage.loan_main_2024 and check for NULL loan fields."
+      - "When both stage.app_main_2024 and stage.loan_main_2024 are needed, ALWAYS use explicit JOIN: stage.app_main_2024.applicationid = stage.loan_main_2024.loannumber"
+      - "NEVER use IN (SELECT ...) or EXISTS subqueries for table relationships. Use JOIN instead."
+      - "CRITICAL: Column names MUST match EXACTLY as defined in the metadata. NEVER invent, guess, or use similar-sounding column names."
+      - "Examples of forbidden hallucinations:"
+      - "  Do NOT use 'interestrate' — correct column is 'intrate' in loan_main_2024"
+      - "  Do NOT use 'interest_rate' or 'rate' — use only 'intrate'"
+      - "  Do NOT use 'fico_score' — correct is 'fico'"
+      - "  Do NOT use 'channel' — correct is 'channel_code', 'channel_name', etc."
+      - "If a requested metric (e.g., interest rate) is not available under the exact column name, do NOT assume or create a column. Return CANNOT_ANSWER if the exact column is missing."
+      - "Always use the exact column names from the columns list: intrate, apr, originationfee, amountfinanced, etc."
+      - "CRITICAL: Column ownership is strict and MUST be respected at all times."
+      - "decision_status exists ONLY in stage.app_main_2024 — NEVER reference it from stage.loan_main_2024"
+      - "decision_source exists in BOTH tables — when needed for funded loans, use loan_main_2024.decision_source"
+      - "decisionid exists in BOTH tables — non-null in loan_main_2024 means funded/approved"
+      - "NEVER use app_main_2024 columns (like decision_status, applicationstatus_*, etc.) when filtering or grouping on loan_main_2024 data unless explicitly joined and qualified."
+      - "For fraud-related queries on funded loans:"
+      - "  There is NO direct 'fraud' flag in loan_main_2024"
+      - "  Fraud detection happens at application stage — use app_main_2024 columns via JOIN if needed"
+      - "  Common fraud indicators in app_main_2024: decision_declined_reason*, fraudspecialist_id, appnotes containing fraud keywords"
+      - "If user asks for 'fraud loans' or 'suspected fraud' on funded loans and no direct column exists in loan_main_2024 → return CANNOT_ANSWER or suggest alternative (e.g., declined applications)"
+      - "CRITICAL: vantage4 in stage.loan_main_2024 is of type INTEGER — it is a clean numeric column containing only valid integers."
+      - "NEVER apply regex matching (~ operator), string validation, or casting to numeric on vantage4."
+      - "Forbidden patterns (must NEVER generate):"
+      - "  - vantage4 ~ '^[0-9.]+$'"
+      - "  - vantage4::numeric"
+      - "  - CASE WHEN vantage4 ~ ... THEN vantage4::numeric ELSE NULL END"
+      - "Always use vantage4 directly in aggregations and calculations:"
+      - "  Correct: AVG(vantage4), SUM(vantage4), vantage4 > 700, etc."
+      - "  Correct: AVG(loan.vantage4) AS avg_vantage_score"
+      - "CRITICAL: NEVER generate regex validation (~ operator) or CASE cleaning for arix_probabilityofbad in expected charge-off calculations."
+      - "Forbidden patterns (must NEVER appear in any generated SQL):"
+      - "  - arix_probabilityofbad ~ '^[0-9.]+$'"
+      - "  - arix_probabilityofbad ~ '^[0-9.]+$'"
+      - "  - CASE WHEN arix_probabilityofbad ~ ... THEN arix_probabilityofbad::numeric ELSE NULL END"
+      - "  - Any use of ~ or regex on arix_probabilityofbad"
+      - "For expected charge-off calculations:"
+      - "ALWAYS use direct multiplication: amountfinanced * arix_probabilityofbad::numeric"
+      - "Correct formula: SUM(loan.amountfinanced * loan.arix_probabilityofbad::numeric)"
+      - "Invalid values will become NULL automatically when cast fails, and SUM ignores NULLs — no manual cleaning needed."
+      - "Example correct usage:"
+      - "SUM(loan.amountfinanced * loan.arix_probabilityofbad::numeric) AS expected_charge_off"
+      - "If bad data causes issues, fix at ETL level — never add regex in ad-hoc queries."
+      - "CRITICAL: To calculate months between two dates (e.g., Months on Book / MOB):"
+      - "  NEVER use: EXTRACT(MONTH FROM (date1 - date2)) — this returns integer days and causes 'extract(unknown, integer)' error."
+      - "  ALWAYS use: EXTRACT(MONTH FROM AGE(date1, date2))"
+      - "  Correct examples:"
+      - "    EXTRACT(MONTH FROM AGE(CURRENT_DATE, applicationdate))"
+      - "    EXTRACT(MONTH FROM AGE(reportdate, fundeddate)) AS mob"
+      - "  Alternative exact month count:"
+      - "    (EXTRACT(YEAR FROM date1)*12 + EXTRACT(MONTH FROM date1)) - (EXTRACT(YEAR FROM date2)*12 + EXTRACT(MONTH FROM date2))"
+
+      - "CRITICAL: income_amount exists ONLY in stage.app_main_2024 — NEVER reference it from stage.loan_main_2024"
+      - "Forbidden: loan.income_amount, lm.income_amount"
+      - "Correct: app.income_amount or am.income_amount"
+      - "income_amount is verified income at application time — use from app_main_2024 even when analyzing funded loans."
+      - "Other application-only columns that must NEVER be used from loan_main_2024:"
+      - "  - stated_grossmonthlyincome"
+      - "  - income_source"
+      - "  - employment_status"
+      - "  - decision_status"
+      - "CRITICAL: EVERY percentage or rate calculation MUST be protected against division by zero."
+      - "NEVER write: numerator / denominator * 100"
+      - "ALWAYS use one of these safe patterns:"
+      - "  - COALESCE(numerator / NULLIF(denominator, 0), 0.0) * 100"
+      - "  - CASE WHEN denominator > 0 THEN (numerator::numeric / denominator) * 100 ELSE 0.0 END"
+      - "This applies to ALL rates and percentages including:"
+      - "  - Approval rate, funding rate, charge-off rate"
+      - "  - % of loans with PD > threshold (like > 0.3)"
+      - "  - % with positive arix_probabilityofbad"
+      - "  - Any COUNT(...) / COUNT(...) calculation"
+      - "If no rows match the filter, return 0.0 — never allow division by zero."
+      - arix_probabilityofbad is character varying (text) — it is the ONLY column that requires casting to numeric."
+      - "To use arix_probabilityofbad in comparisons or math:"
+      - "  ALWAYS cast it: arix_probabilityofbad::numeric"
+      - "  Correct: arix_probabilityofbad::numeric > 0.3"
+      - "  Correct: amountfinanced * arix_probabilityofbad::numeric"
+      - "  Forbidden: arix_probabilityofbad > 0.3 (direct comparison — causes operator error)"
+      - "Invalid text values become NULL on cast — no need for regex cleaning in most cases."
+      - "For percentages involving arix_probabilityofbad:"
+      - "  Always use COUNT(CASE WHEN arix_probabilityofbad::numeric > X THEN 1 END)"
+      - "  Always protect division: COALESCE(... / NULLIF(COUNT(*), 0), 0.0) * 100"
+
+
+    examples:
+      - nl: "How many approved loans do we have?"
+        sql: "SELECT COUNT(loannumber) FROM stage.loan_main_2024 WHERE decisionid IS NOT NULL;"
+
+relationships:
+  - "When filtering funded vs not funded applications, NEVER use subqueries (NOT IN / IN). Always use a LEFT JOIN to stage.loan_main_2024 and check for NULL loan fields."
+  - description: "Join rule between application-level and loan-level data."
+    join_policies:
+      - name: application_to_loan_join
+        scope:
+          tables:
+            - stage.app_main_2024
+            - stage.loan_main_2024
+        description: >
+          Mandatory and exclusive join rule between application-level and loan-level data.
+          This rule must be enforced for all queries that join these two tables.
+        allowed_join:
+          left_table: stage.app_main_2024
+          left_column: applicationid
+          right_table: stage.loan_main_2024
+          right_column: loannumber
+          condition: "stage.app_main_2024.applicationid = stage.loan_main_2024.loannumber"
+        forbidden_columns:
+          - stage.loan_main_2024.customerid
+        forbidden_practices:
+          - joining on customerid
+          - casting columns to force a join
+          - using alternative join keys
+          - using multiple columns for the join
+          - implicit joins without an ON clause
+        enforcement_rules:
+          - Any query joining stage.app_main_2024 and stage.loan_main_2024 MUST use the allowed_join condition.
+          - Queries that use any forbidden_columns for joining are invalid.
+          - Queries that cast join columns to bypass type mismatches are invalid.
+          - Queries violating this rule must be rejected even if they execute successfully.
+        rationale:
+          - applicationid and loannumber represent the same business entity.
+          - customerid represents a customer entity and must not be used as a transactional join key.
+          - Incorrect joins cause row duplication, inflated aggregates, and invalid analytics.
+        validation_checks:
+          - Joined row count must not exceed the row count of either base table.
+          - Joined row count must not be zero unless explicitly expected.
+
+glossary:
+  APR: "Annual Percentage Rate including fees & interest."
+  FSL: "Fresh Start Lending product line."
+  DTC: "Direct To Consumer loan acquisition channel."
+  DTM: "Direct To Merchant loan acquisition channel."
+  approved_loan: "Loan where decisionid IS NOT NULL."
+  expected_charge_off:
+    description: >
+      Expected charge-off is calculated as:
+      SUM(amountfinanced * arix_probabilityofbad)
+      using arix_probabilityofbad from stage.loan_main_2024.
+
+notes:
+  - "Descriptions are industry-standard inferences based on column names; validate with business owners when available."
+  - "Avoid long narrative text to preserve embedding quality for SQL-RAG; keep descriptions concise."
+
+date_fields:
+  submitted_date: "CAST REQUIRED: submitted_date is stored as VARCHAR. Always cast using submitted_date::timestamp before date_trunc or comparisons."
+  prospect_date: "CAST REQUIRED: prospect_date is VARCHAR."
+  fsl_preselectiondate: "CAST REQUIRED: fsl_preselectiondate is VARCHAR."
+  decision_declined_emailsentdate: "CAST REQUIRED: decision_declined_emailsentdate is VARCHAR."
+  contract_generatedon: "CAST REQUIRED: contract_generatedon is VARCHAR."
+  contract_sentdate: "CAST REQUIRED: contract_sentdate is VARCHAR."
+  contract_expirationdate: "CAST REQUIRED: contract_expirationdate is VARCHAR."
+  contract_firstpaymentdate: "CAST REQUIRED: contract_firstpaymentdate is VARCHAR."
+  contract_finalpaymentdate: "CAST REQUIRED: contract_finalpaymentdate is VARCHAR."
+  contract_notedate: "CAST REQUIRED: contract_notedate is VARCHAR."
+  contract_amounttaken: "CAST REQUIRED: contract_amounttaken is VARCHAR."
+  contract_principalamount: "CAST REQUIRED: contract_principalamount is VARCHAR."
+  contract_paymentamount: "CAST REQUIRED: contract_paymentamount is VARCHAR."
+  contract_regularpaymentamount: "CAST REQUIRED: contract_regularpaymentamount is VARCHAR."
+  contract_finalpaymentamount: "CAST REQUIRED: contract_finalpaymentamount is VARCHAR."
+  contract_totalpaymentamount: "CAST REQUIRED: contract_totalpaymentamount is VARCHAR."
+  contract_financecharge: "CAST REQUIRED: contract_financecharge is VARCHAR."
+  contract_latefee: "CAST REQUIRED: contract_latefee is VARCHAR."
+  contract_nsffee: "CAST REQUIRED: contract_nsffee is VARCHAR."
+  contract_maxlatefee: "CAST REQUIRED: contract_maxlatefee is VARCHAR."
+  contract_maxnsffee: "CAST REQUIRED: contract_maxnsffee is VARCHAR."
+  contract_originationfees: "CAST REQUIRED: contract_originationfees is VARCHAR."
+  contract_originationpercentage: "CAST REQUIRED: contract_originationpercentage is VARCHAR."
+  contract_payoutamount: "CAST REQUIRED: contract_payoutamount is VARCHAR."
+  contract_payoutpercentage: "CAST REQUIRED: contract_payoutpercentage is VARCHAR."
+  contract_riskband: "CAST REQUIRED: contract_riskband is VARCHAR."
+  contract_approvalamount: "CAST REQUIRED: contract_approvalamount is VARCHAR."
+  contract_downpayment: "CAST REQUIRED: contract_downpayment is VARCHAR."
+  contract_zipterm: "CAST REQUIRED: contract_zipterm is VARCHAR."
+  contract_contractapr: "CAST REQUIRED: contract_contractapr is VARCHAR."
+  contract_rate: "CAST REQUIRED: contract_rate is VARCHAR."
+  contract_term: "CAST REQUIRED: contract_term is VARCHAR."
+  contract_requestedamount: "CAST REQUIRED: contract_requestedamount is VARCHAR."
+  serviceconfirm_requestsentdate: "CAST REQUIRED: serviceconfirm_requestsentdate is VARCHAR."
+  serviceconfirm_confirmationdate: "CAST REQUIRED: serviceconfirm_confirmationdate is VARCHAR."
+  serviceconfirm_statusdate: "CAST REQUIRED: serviceconfirm_statusdate is VARCHAR."
+  purchasedate_investor: "CAST REQUIRED: purchasedate_investor is VARCHAR."
+  achsent_date: "CAST REQUIRED: achsent_date is VARCHAR."
+  notedate: "CAST REQUIRED: notedate is VARCHAR."
+  applicationdate: "CAST REQUIRED: applicationdate is VARCHAR."
+  applicationapprovaldate: "CAST REQUIRED: applicationapprovaldate is VARCHAR."
+
+rules:
+  - "Always cast VARCHAR date columns using ::timestamp before using date_trunc or interval comparisons, EXCEPT when the column name ends with '_full', in which case the column must be used as-is and must NOT be cast."
+  - "Always use the base date column (without the '_full' suffix) when both versions exist."
+  - "NEVER select or use any column ending with '_full' unless the user explicitly names that column in the question."
+  - "Expected charge-off calculations MUST use stage.loan_main_2024.amountfinanced * stage.loan_main_2024.arix_probabilityofbad."
