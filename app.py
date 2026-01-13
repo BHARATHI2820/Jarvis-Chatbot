@@ -79,7 +79,6 @@ def search_corpus(question: str):
     print(f"   Will generate new answer...\n")
     return None
 
-
 def add_to_corpus(question: str, answer: str):
     print("\n" + "="*60)
     print("🔵 USER FEEDBACK: YES - Saving to Corpus")
@@ -96,7 +95,6 @@ def add_to_corpus(question: str, answer: str):
     print(f"✅ SUCCESSFULLY SAVED TO CORPUS!")
     print(f"📊 New corpus size: {vectorstore.index.ntotal}")
     print("="*60 + "\n")
-
 
 
 # ===========================
@@ -226,23 +224,102 @@ def call_azure_api(messages, model=AZURE_MODEL):
 
 def fix_common_sql_errors(sql: str) -> str:
     """
-    Auto-fix common SQL generation errors before execution.
+    Auto-fix common SQL generation errors to match company standards
     
-    Args:
-        sql: Raw SQL from LLM
-        
-    Returns:
-        Fixed SQL query
+    New fixes added:
+    1. Replace applicationdate with applicationdate
+    2. Add table alias if missing
+    3. Qualify columns with table alias
     """
     import re
+    # ========================================
+    # FIX: SQL Function Typos
+    # ========================================
+    sql_typos = {
+        r'\bEXTRACT\s*\(\s*MNTH\b': 'EXTRACT(MONTH',  # MNTH → MONTH
+        r'\bDATE_TRUNC\s*\(\s*\'mnth\'': 'DATE_TRUNC(\'month\'',
+        # Add more common typos as you discover them
+    }
+    
+    for typo_pattern, correct in sql_typos.items():
+        if re.search(typo_pattern, sql, re.IGNORECASE):
+            logger.warning(f"🔧 AUTO-FIX: Correcting SQL typo: {typo_pattern} → {correct}")
+            sql = re.sub(typo_pattern, correct, sql, flags=re.IGNORECASE)
+
+    # ========================================
+    # NEW FIX: Column Name Hallucinations
+    # ========================================
+    column_hallucinations = {
+        r'\bvantage_score\b': 'vantage4',
+        r'\bvantagescore\b': 'vantage4', 
+        r'\binterest_rate\b': 'intrate',
+        r'\binterestrate\b': 'intrate',
+        r'\bfico_score\b': 'fico',
+    }
+    for wrong, correct in column_hallucinations.items():
+        if re.search(wrong, sql, re.IGNORECASE):
+            logger.warning(f"🔧 AUTO-FIX: Replacing '{wrong}' with '{correct}'")
+            sql = re.sub(wrong, correct, sql, flags=re.IGNORECASE)
+
     from datetime import datetime
     
-    # Fix 1: CRITICAL - Replace channel_code with channel_group for DTM/DTC/FSL
-    # This is the company's standard and must be enforced
+    # ========================================
+    # FIX 1: Replace applicationdate with applicationdate
+    # ========================================
+    if "applicationdate" in sql.lower() and "applicationdate" not in sql.lower():
+        logger.warning("🔧 CRITICAL FIX: Replacing applicationdate with applicationdate (company standard)")
+        
+        # Replace all occurrences
+        sql = re.sub(
+            r'\b(app\.)?applicationdate\b',
+            r'\1applicationdate',
+            sql,
+            flags=re.IGNORECASE
+        )
+    
+    # ========================================
+    # FIX 2: Add table alias if missing for single table queries
+    # ========================================
+    if "FROM stage.app_main_2024" in sql and "FROM stage.app_main_2024 app" not in sql:
+        logger.warning("🔧 Adding table alias 'app' (company standard)")
+        sql = sql.replace("FROM stage.app_main_2024", "FROM stage.app_main_2024 app")
+        
+        # Now qualify unqualified columns
+        # Look for common columns that need app. prefix
+        columns_to_qualify = [
+            'applicationid', 'applicationdate', 'channel_group', 
+            'channel_code', 'channel_name', 'customerid', 'decisionid',
+            'applicationdate', 'applicationapprovaldate'
+        ]
+        
+        for col in columns_to_qualify:
+            # Match column NOT preceded by 'app.' or 'loan.'
+            pattern = r'\b(?<!app\.)(?<!loan\.)(' + col + r')\b'
+            replacement = r'app.\1'
+            sql = re.sub(pattern, replacement, sql, flags=re.IGNORECASE)
+    
+    # ========================================
+    # FIX 3: Convert static date ranges to INTERVAL format
+    # ========================================
+    # Look for patterns like: >= '2024-10-01' AND <= '2024-12-31'
+    # Convert to: >= DATE '2024-01-01' - INTERVAL '3 months'
+    
+    q4_pattern = r">=\s*['\"]2024-10-01['\"].*?<=\s*['\"]2024-12-31['\"]"
+    if re.search(q4_pattern, sql, re.IGNORECASE):
+        logger.warning("🔧 Converting Q4 date range to INTERVAL format (company standard)")
+        sql = re.sub(
+            q4_pattern,
+            ">= DATE '2024-01-01' - INTERVAL '3 months'",
+            sql,
+            flags=re.IGNORECASE
+        )
+    
+    # ========================================
+    # FIX 4: Channel filtering (keep existing logic)
+    # ========================================
     if re.search(r"channel_code\s*=\s*['\"]?(DTM|DTC|FSL)['\"]?", sql, re.IGNORECASE):
         logger.warning("🔧 CRITICAL FIX: Detected channel_code usage - replacing with channel_group ILIKE")
         
-        # Replace channel_code = 'DTM' with channel_group ILIKE '%DTM%'
         sql = re.sub(
             r"(\w+\.)?channel_code\s*=\s*['\"]DTM['\"]",
             r"\1channel_group ILIKE '%DTM%'",
@@ -262,23 +339,16 @@ def fix_common_sql_errors(sql: str) -> str:
             flags=re.IGNORECASE
         )
     
-    # Fix 2: Remove undefined table aliases in single-table queries
-    if sql.count("FROM stage.") == 1 and "JOIN" not in sql.upper():
-        table_match = re.search(r"FROM (stage\.\w+)", sql, re.IGNORECASE)
-        if table_match:
-            table_name = table_match.group(1)
-            alias_match = re.search(r"FROM " + re.escape(table_name) + r"\s+([a-z])\b", sql, re.IGNORECASE)
-            
-            if not alias_match:
-                sql = re.sub(r'\b(a|app|l|loan|am|lm)\.([\w_]+)', r'\2', sql)
-                logger.warning("🔧 Auto-fixed: Removed undefined table aliases")
-    
-    # Fix 3: Detect and warn about CURRENT_DATE usage in historical queries
+    # ========================================
+    # FIX 5: Detect CURRENT_DATE usage
+    # ========================================
     if "CURRENT_DATE" in sql.upper():
         logger.warning("⚠️  WARNING: Query uses CURRENT_DATE but database contains 2023-2024 data only!")
         logger.warning("    This query may return 0 rows. Use explicit 2024 dates instead.")
     
-    # Fix 4: Replace future years with 2024
+    # ========================================
+    # FIX 6: Replace future years with 2024
+    # ========================================
     future_years = ['2025', '2026', '2027']
     for year in future_years:
         if f"'{year}-" in sql or f'"{year}-' in sql:
@@ -286,40 +356,50 @@ def fix_common_sql_errors(sql: str) -> str:
                        lambda m: m.group(0).replace(year, '2024'), sql)
             logger.warning(f"🔧 Auto-fixed: Replaced year {year} with 2024 (data coverage: 2023-2024)")
     
-    # Fix 5: Replace >= with proper symbol
+    # ========================================
+    # FIX 7: Replace >= with proper symbol
+    # ========================================
     sql = sql.replace("≥", ">=").replace("≤", "<=")
     
-    # Fix 6: Ensure INTERVAL uses valid units (no 'quarter')
+    # ========================================
+    # FIX 8: Ensure INTERVAL uses valid units
+    # ========================================
     if "INTERVAL 'quarter'" in sql or 'INTERVAL "quarter"' in sql:
         sql = sql.replace("INTERVAL 'quarter'", "INTERVAL '3 months'")
         sql = sql.replace('INTERVAL "quarter"', "INTERVAL '3 months'")
         logger.warning("🔧 Auto-fixed: Replaced INTERVAL 'quarter' with '3 months'")
-    
-    # Fix 7: Detect quarter calculations with CURRENT_DATE
-    if "date_trunc('quarter'" in sql.lower() and "current_date" in sql.lower():
-        logger.warning("⚠️  WARNING: Quarter calculation uses CURRENT_DATE (2026) but data is from 2023-2024")
-        logger.warning("    Query will return 0 rows. Use explicit Q4 2024 dates:")
-        logger.warning("    applicationdate >= '2024-10-01' AND applicationdate <= '2024-12-31'")
-    
-    # Fix 8: Ensure semicolon at end
+
+    # ========================================
+    # FIX 9: Ensure semicolon at end
+    # ========================================
     sql = sql.strip()
     if not sql.endswith(";"):
         sql += ";"
     
     return sql
 
+
 def enhance_question_with_context(question: str) -> str:
     """
     Enhance user question with business context to guide SQL generation.
-    
-    Args:
-        question: Original user question
-        
-    Returns:
-        Enhanced question with explicit instructions
     """
     enhanced = question
     question_lower = question.lower()
+
+        # ========================================
+    # TREND QUERIES = Full Year (12 months)
+    # ========================================
+    if 'trend' in question_lower:
+        enhanced += "\n[CONTEXT: Trend query requires 12-month period - use INTERVAL '12 months']"
+        enhanced += "\n[CONTEXT: Include both COUNT and AVG for comprehensive trend analysis]"
+    
+    # ========================================
+    # LAST QUARTER = 3 months (keep existing logic)
+    # ========================================
+    elif any(phrase in question_lower for phrase in [
+        'last quarter', 'previous quarter', 'Q4', 'quarter'
+    ]):
+        enhanced += "\n[CONTEXT: Last quarter = 3 months]"
     
     # Detect channel mentions and add filtering hints
     if any(term in question.upper() for term in ["FSL", "FRESH START"]):
@@ -332,23 +412,29 @@ def enhance_question_with_context(question: str) -> str:
         enhanced += "\n[CONTEXT: DTM filtering requires channel_group ILIKE '%DTM%' - NEVER use channel_code]"
     
     # Handle relative date queries
+    # **CHANGED: Now uses applicationdate instead of applicationdate**
     if any(phrase in question_lower for phrase in [
         'last quarter', 'previous quarter', 'recent quarter', 'Q4', 'fourth quarter'
     ]):
-        enhanced += "\n[CONTEXT: 'Last quarter' = Q4 2024 (Oct-Dec 2024). Use explicit dates: '2024-10-01' to '2024-12-31']"
+        # Company uses dynamic date calculation
+        enhanced += "\n[CONTEXT: 'Last quarter' = Q4 2024. Use applicationdate >= DATE '2024-01-01' - INTERVAL '3 months']"
     
     if 'q3' in question_lower or 'third quarter' in question_lower:
-        enhanced += "\n[CONTEXT: Q3 2024 = Jul-Sep 2024. Use dates: '2024-07-01' to '2024-09-30']"
+        enhanced += "\n[CONTEXT: Q3 2024. Use applicationdate >= DATE '2024-04-01' - INTERVAL '3 months']"
     
     if 'q2' in question_lower or 'second quarter' in question_lower:
-        enhanced += "\n[CONTEXT: Q2 2024 = Apr-Jun 2024. Use dates: '2024-04-01' to '2024-06-30']"
+        enhanced += "\n[CONTEXT: Q2 2024. Use applicationdate >= DATE '2024-07-01' - INTERVAL '3 months']"
     
     if 'q1' in question_lower or 'first quarter' in question_lower:
-        enhanced += "\n[CONTEXT: Q1 2024 = Jan-Mar 2024. Use dates: '2024-01-01' to '2024-03-31']"
+        enhanced += "\n[CONTEXT: Q1 2024. Use applicationdate >= DATE '2024-10-01' - INTERVAL '3 months']"
     
     # Detect last month
     if 'last month' in question_lower or 'previous month' in question_lower:
-        enhanced += "\n[CONTEXT: 'Last month' = December 2024. Use dates: '2024-12-01' to '2024-12-31']"
+        enhanced += "\n[CONTEXT: 'Last month' = December 2024. Use applicationdate with INTERVAL calculation]"
+    
+    # **NEW: Add guidance for application count queries**
+    if any(word in question_lower for word in ['app count', 'application count', 'how many app', 'total app']):
+        enhanced += "\n[CONTEXT: Use applicationdate for application counts, not applicationdate]"
     
     # Detect trend/volume queries
     if any(word in question_lower for word in ['trend', 'dip', 'drop', 'increase', 'volume over', 'monthly', 'by month']):
@@ -356,33 +442,24 @@ def enhance_question_with_context(question: str) -> str:
     
     # Handle "total" or "count" queries
     if ('total' in question_lower or 'count' in question_lower) and any(word in question_lower for word in ['quarter', 'month', 'year']):
-        enhanced += "\n[CONTEXT: Aggregation query - use explicit date range with both lower and upper bounds]"
+        enhanced += "\n[CONTEXT: Aggregation query - use applicationdate with INTERVAL calculation]"
     
     return enhanced
-
-
 def generate_sql(question):
+    """
+    Generate SQL matching company chatbot patterns
+    
+    Key changes:
+    1. Use applicationdate
+    2. Use table aliases (app, loan)
+    3. Use DATE + INTERVAL syntax
+    """
+    
     # Enhance question with business context
     enhanced_question = enhance_question_with_context(question)
-        #     # Original question
-        # "Show FSL applications in August 2024"
-        # # After enhancement (adds hints)
-        # "Show FSL applications in August 2024
-        # [CONTEXT: FSL filtering requires channel_group ILIKE '%FSL%']
-        # [CONTEXT: Use dates: '2024-08-01' to '2024-08-31']"
     
+    # Retrieve RAG context
     rag_context = retrieve_context(question)
-       ## the above line does the search
-        #**What happens:**
-        # 1. Your question converts to embedding (vector)
-        # 2. FAISS searches `sql_meta.index` 
-        # 3. Finds top-3 most relevant chunks from YAML
-
-        # **Example chunks retrieved:**
-        # ```
-        # Chunk 1: "FSL filtering: ALWAYS use channel_group ILIKE '%FSL%'"
-        # Chunk 2: "Use applicationdate for app volume queries"
-        # Chunk 3: "Date format: '2024-08-01' to '2024-08-31'"
     
     from datetime import datetime
     
@@ -395,12 +472,42 @@ Most Complete Period: January 2024 - December 2024
 Current System Date: {datetime.now().strftime('%Y-%m-%d')}
 
 CRITICAL: This is HISTORICAL DATA. Do NOT use CURRENT_DATE in queries.
+=== CRITICAL COLUMN NAME CORRECTIONS ===
+NEVER use these column names (they don't exist):
+❌ vantage_score
+❌ vantagescore  
+❌ vantage
+❌ interest_rate
+❌ interestrate
 
-Quarter Mappings for 2024 Data:
-- "last quarter" or "Q4 2024" → '2024-10-01' to '2024-12-31'
-- "Q3 2024" → '2024-07-01' to '2024-09-30'
-- "Q2 2024" → '2024-04-01' to '2024-06-30'
-- "Q1 2024" → '2024-01-01' to '2024-03-31'
+ALWAYS use exact column names from metadata:
+✅ vantage4 (VantageScore 4.0)
+✅ fico (FICO score)
+✅ intrate (interest rate in loan_main_2024)
+✅ apr (annual percentage rate)
+
+=== METADATA ===
+{rag_context}
+
+=== USER QUESTION ===
+{enhanced_question}
+
+=== CRITICAL RULES ===
+1. **COLUMN NAME EXACTNESS**: Only use column names EXACTLY as defined in metadata
+   - For VantageScore: MUST use vantage4 (NOT vantage_score)
+   - If metadata doesn't have exact column, return CANNOT_ANSWER
+
+2. **TABLE ALIASES**: Always use table aliases
+   - Single table: FROM stage.app_main_2024 app
+   - Multi-table: FROM stage.app_main_2024 app JOIN stage.loan_main_2024 loan
+
+3. **DATE FILTERING**: 
+   - Last quarter = 3 months
+   - Format: applicationdate >= DATE '2024-01-01' - INTERVAL '3 months'
+
+4. **CHANNEL FILTERING**:
+   - Use: channel_group ILIKE '%FSL%'
+   - Never use: channel_code
 
 === METADATA ===
 {rag_context}
@@ -410,49 +517,95 @@ Quarter Mappings for 2024 Data:
 
 === CRITICAL RULES (MUST FOLLOW) ===
 
-1. CHANNEL FILTERING (MOST IMPORTANT):
-   ⚠️  ALWAYS use channel_group ILIKE for channel filtering
-   ⚠️  NEVER use channel_code under ANY circumstance
+1. **ALWAYS USE TABLE ALIASES** (COMPANY STANDARD):
+   - Single table: FROM stage.app_main_2024 app
+   - With alias, MUST qualify columns: app.applicationid, app.channel_group
+   - Multi-table: FROM stage.app_main_2024 app JOIN stage.loan_main_2024 loan
+
+2. **DATE COLUMN USAGE** (CRITICAL - COMPANY USES DIFFERENT COLUMN):
+   ⚠️  For application counts/volume: USE applicationdate 
+   ⚠️  Company standard: applicationdate tracks when borrower STARTED application
+   
+   Correct: WHERE app.applicationdate >= DATE '2024-01-01' - INTERVAL '3 months'
+   Wrong: WHERE applicationdate >= '2024-10-01'
+
+3. **DATE FILTERING SYNTAX** (MUST MATCH COMPANY FORMAT):
+   Company uses dynamic date calculations with INTERVAL:
+   
+   Format: >= DATE 'YYYY-MM-DD' - INTERVAL 'N months'
+   
+   Examples:
+   - Q4 2024 (last quarter): >= DATE '2024-01-01' - INTERVAL '3 months'
+     (This calculates: 2024-01-01 minus 3 months = 2023-10-01, which is Q4 start)
+   
+   - Q3 2024: >= DATE '2024-07-01' - INTERVAL '3 months'
+   - Q2 2024: >= DATE '2024-04-01' - INTERVAL '3 months'
+   - Q1 2024: >= DATE '2024-01-01'
+   
+   **IMPORTANT**: The INTERVAL calculation is the company standard pattern.
+   Always use: DATE 'start_date' - INTERVAL 'N months'
+
+4. **CHANNEL FILTERING** (KEEP YOUR CURRENT APPROACH - IT'S CORRECT):
+   ✅ ALWAYS use channel_group ILIKE for channel filtering
+   ✅ NEVER use channel_code
    
    Required Syntax:
-   - DTM: WHERE channel_group ILIKE '%DTM%'
-   - DTC: WHERE channel_group ILIKE '%DTC%'
-   - FSL: WHERE channel_group ILIKE '%FSL%'
+   - DTM: WHERE app.channel_group ILIKE '%DTM%'
+   - DTC: WHERE app.channel_group ILIKE '%DTC%'
+   - FSL: WHERE app.channel_group ILIKE '%FSL%'
+
+5. **SQL STRUCTURE** (MATCH COMPANY FORMAT):
    
-   FORBIDDEN: channel_code = 'DTM', channel_code = 'FSL', etc.
-
-2. DATE HANDLING:
-   - Use explicit date literals: '2024-10-01'
-   - NEVER use CURRENT_DATE
-   - ALWAYS include both lower AND upper date bounds
-   - Example: applicationdate >= '2024-10-01' AND applicationdate <= '2024-12-31'
-
-3. SQL SYNTAX:
-   - Single table: No alias prefix on columns
-     Correct: WHERE channel_group ILIKE '%DTM%'
-     Wrong: WHERE app.channel_group ILIKE '%DTM%'
+   Template for single table query:
+   ```sql
+   SELECT COUNT(app.applicationid) AS total_app_count
+   FROM stage.app_main_2024 app
+   WHERE app.applicationdate >= DATE '2024-01-01' - INTERVAL '3 months'
+     AND app.channel_group ILIKE '%DTM%';
+   ```
    
-   - Multi-table: Define and use aliases
-     Example: FROM stage.app_main_2024 app 
-              JOIN stage.loan_main_2024 loan 
-              ON app.applicationid = loan.loannumber
-              WHERE app.channel_group ILIKE '%FSL%'
+   Template for multi-table query:
+   ```sql
+   SELECT COUNT(app.applicationid) AS total_count
+   FROM stage.app_main_2024 app
+   JOIN stage.loan_main_2024 loan ON app.applicationid = loan.loannumber
+   WHERE app.applicationdate >= DATE '2024-01-01' - INTERVAL '3 months'
+     AND app.channel_group ILIKE '%FSL%';
+   ```
 
-4. USE applicationdate FOR:
-   - Application volume queries
-   - Submission trends
-   - Monthly/quarterly aggregations
+6. **COLUMN QUALIFICATION** (COMPANY STANDARD):
+   - ALWAYS qualify columns with table alias when alias is defined
+   - Correct: app.applicationdate, app.channel_group, app.applicationid
+   - Wrong: applicationdate, channel_group (without alias)
 
-5. OUTPUT REQUIREMENTS:
+7. **OUTPUT REQUIREMENTS**:
    - ONLY SQL query
    - NO markdown, NO backticks, NO explanations
    - If metadata doesn't support query: return CANNOT_ANSWER
+   - End with semicolon
 
-Generate the SQL query:
+=== EXAMPLES (COMPANY FORMAT) ===
+
+Q: "What is total app count for DTM during the last quarter"
+A: SELECT COUNT(app.applicationid) AS total_app_count FROM stage.app_main_2024 app WHERE app.applicationdate >= DATE '2024-01-01' - INTERVAL '3 months' AND app.channel_group ILIKE '%DTM%';
+
+Q: "Show FSL applications in August 2024"
+A: SELECT COUNT(app.applicationid) AS total_count FROM stage.app_main_2024 app WHERE app.applicationdate >= DATE '2024-08-01' AND app.applicationdate < DATE '2024-09-01' AND app.channel_group ILIKE '%FSL%';
+
+Q: "Count DTM apps by month in Q4"
+A: SELECT EXTRACT(MONTH FROM app.applicationdate) AS month, COUNT(app.applicationid) AS app_count FROM stage.app_main_2024 app WHERE app.applicationddate >= DATE '2024-01-01' - INTERVAL '3 months' AND app.channel_group ILIKE '%DTM%' GROUP BY EXTRACT(MONTH FROM app.applicationdate) ORDER BY month;
+
+Q: "What is the vantage trend for DTM apps"
+A: SELECT EXTRACT(MONTH FROM app.applicationdate) AS application_month, COUNT(app.applicationid) AS total_app_count, AVG(app.vantage4) AS avg_vantage_score FROM stage.app_main_2024 app WHERE app.applicationdate >= DATE '2024-01-01' - INTERVAL '12 months' AND app.channel_group ILIKE '%DTM%' GROUP BY EXTRACT(MONTH FROM app.applicationdate) ORDER BY application_month;
+
+Q: "Show me FICO trend for FSL loans over the year"  
+A: SELECT EXTRACT(MONTH FROM app.applicationdate) AS application_month, COUNT(app.applicationid) AS total_app_count, AVG(app.fico) AS avg_fico_score FROM stage.app_main_2024 app WHERE app.applicationdate >= DATE '2024-01-01' - INTERVAL '12 months' AND app.channel_group ILIKE '%FSL%' GROUP BY EXTRACT(MONTH FROM app.applicationdate) ORDER BY application_month;
+
+Generate the SQL query following these exact patterns:
 """
     
     messages = [
-        {"role": "system", "content": "You are a PostgreSQL expert. Always use channel_group ILIKE for channel filtering. Never use channel_code. Use explicit 2024 dates."},
+        {"role": "system", "content": "You are a PostgreSQL expert. Generate SQL matching the company's exact patterns: use applicationdate, table aliases, and DATE + INTERVAL syntax."},
         {"role": "user", "content": prompt}
     ]
     
@@ -492,10 +645,43 @@ def validate_join_rules(sql: str):
             raise ValueError("Invalid JOIN detected. Required join: applicationid = loannumber")
     return sql
 
+def validate_column_names(sql: str) -> str:
+    """
+    Validate and fix common column name hallucinations
+    """
+    import re
+    
+    # Define column name mappings (wrong → correct)
+    column_fixes = {
+        r'\bvantage_score\b': 'vantage4',
+        r'\bvantagescore\b': 'vantage4',
+        r'\bvantage\b(?!4)': 'vantage4',  # vantage but not vantage4
+        r'\binterest_rate\b': 'intrate',
+        r'\binterestrate\b': 'intrate',
+        r'\bfico_score\b': 'fico',
+    }
+    
+    original_sql = sql
+    
+    for wrong_pattern, correct_name in column_fixes.items():
+        if re.search(wrong_pattern, sql, re.IGNORECASE):
+            logger.warning(f"🔧 CRITICAL FIX: Replacing hallucinated column '{wrong_pattern}' with '{correct_name}'")
+            sql = re.sub(wrong_pattern, correct_name, sql, flags=re.IGNORECASE)
+    
+    if sql != original_sql:
+        logger.info("✅ Column name validation applied")
+    
+    return sql
+
+
 def run_sql(sql):
     try:
         if not is_safe_sql(sql):
             raise ValueError("Unsafe SQL detected. Only SELECT queries allowed.")
+        
+        # Add validation step
+        sql = validate_column_names(sql)  # ← ADD THIS LINE
+        
         with engine.connect() as conn:
             validated_sql = validate_join_rules(sql)
             return pd.read_sql(text(validated_sql), conn)
