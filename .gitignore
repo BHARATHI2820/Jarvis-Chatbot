@@ -1,43 +1,26 @@
-# Environment variables (PASSWORDS & API KEYS)
+# Env files
 .env
-.env.local
-.env.production
+.env.*
 
 # Python cache
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+*.pyc
 
-# Virtual environment
+# Virtual env
 env/
 venv/
-ENV/
-env.bak/
-venv.bak/
 
 # Logs
 logs/
 *.log
 
-# FAISS stores (optional - can regenerate these)
-faiss_store/qa_corpus/
-faiss_store/sql_meta.index
-faiss_store/sql_meta.txt
-faiss_store/sql_meta_chunks.json
+# FAISS / data
+faiss_store/
+uploaded_pdfs/
 
-# VS Code settings
+# VS Code
 .vscode/
-.vs/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# OS files
+# OS
 .DS_Store
 Thumbs.db
-
-# Test files
-test_*.py
-*_test.py
