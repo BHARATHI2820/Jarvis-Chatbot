@@ -14,11 +14,12 @@ from azure.ai.inference import ChatCompletionsClient
 from azure.core.credentials import AzureKeyCredential
 import sqlalchemy
 from sqlalchemy import text
-
+from PyPDF2 import PdfReader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 load_dotenv()
 
 # ===========================
-# 1. EMBEDDING MODEL FIRST
+# 1. EMBEDDING MODEL 
 # ===========================
 embedding_model = SentenceTransformer(
     "BAAI/bge-small-en-v1.5",
@@ -96,9 +97,627 @@ def add_to_corpus(question: str, answer: str):
     print(f"📊 New corpus size: {vectorstore.index.ntotal}")
     print("="*60 + "\n")
 
+# ===========================
+# 3.1 PDF RAG SYSTEM (COMPLETE)
+# ===========================
+from PyPDF2 import PdfReader
+from typing import List, Dict
+import hashlib
+
+# Folder paths
+PDF_FOLDER = "uploaded_pdfs"
+PDF_VECTORSTORE_PATH = "faiss_store/pdf_documents"
+
+# Create folders
+os.makedirs(PDF_FOLDER, exist_ok=True)
+os.makedirs(PDF_VECTORSTORE_PATH, exist_ok=True)
 
 # ===========================
-# 3. ENVIRONMENT & LOGGING
+# Initialize PDF Vectorstore
+# ===========================
+def init_pdf_vectorstore():
+    """Initialize or load the PDF document vectorstore"""
+    ## Load existing PDF vectorstore OR create new one
+    if os.path.exists(PDF_VECTORSTORE_PATH) and os.listdir(PDF_VECTORSTORE_PATH):
+        try:
+            pdf_vectorstore = FAISS.load_local(
+                PDF_VECTORSTORE_PATH, # faiss_store/pdf_documents/
+                embeddings,  # Reuse the same embedding model
+                allow_dangerous_deserialization=True  # Allow pickle loading
+            )
+            print(f"📚 Loaded PDF vectorstore with {pdf_vectorstore.index.ntotal} chunks")
+            return pdf_vectorstore
+        except Exception as e:
+            # If load fails, create new
+            print(f"Failed to load PDF vectorstore: {e}, creating new")
+            pdf_vectorstore = FAISS.from_texts(["dummy_pdf_init"], embeddings)
+            pdf_vectorstore.save_local(PDF_VECTORSTORE_PATH)
+            return pdf_vectorstore
+    else:
+         # No existing vectorstore - create new
+        pdf_vectorstore = FAISS.from_texts(["dummy_pdf_init"], embeddings)
+        pdf_vectorstore.save_local(PDF_VECTORSTORE_PATH)
+        print("📚 Created new PDF vectorstore")
+        return pdf_vectorstore
+
+# Initialize at startup (same pattern as your corpus as an global variable is pdf_vectorstore )
+pdf_vectorstore = init_pdf_vectorstore()
+
+# ===========================
+# PDF DUPLICATE PREVENTION
+# ===========================
+PDF_METADATA_FILE = os.path.join(PDF_VECTORSTORE_PATH, "uploaded_pdfs.json")
+
+def load_uploaded_pdfs_metadata():
+    """Load list of already uploaded PDFs"""
+    if os.path.exists(PDF_METADATA_FILE):
+        with open(PDF_METADATA_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_uploaded_pdfs_metadata(metadata):
+    """Save list of uploaded PDFs"""
+    with open(PDF_METADATA_FILE, "w") as f:
+        json.dump(metadata, f, indent=2)
+
+def get_pdf_hash(pdf_file) -> str:
+    # Detect duplicate PDFs by content, not filename
+    """
+    Generate unique hash for PDF to prevent duplicates
+    
+    Why MD5?
+    - Fast (processes large files quickly)
+    - Unique (same content = same hash, different content = different hash)
+    - Collision-free for our use case
+    
+    Args:
+        pdf_file: Streamlit UploadedFile object
+    
+    Returns:
+        str: MD5 hash (e.g., "a1b2c3d4e5f6...")
+    """
+    pdf_file.seek(0)  # Move file pointer to start
+    file_content = pdf_file.read() # Read entire file as bytes
+    pdf_hash = hashlib.md5(file_content).hexdigest() # Generate hash
+    pdf_file.seek(0)   # Reset pointer for later use
+    return pdf_hash    # Returns: "a1b2c3d4e5f6..."
+
+def is_pdf_already_uploaded(pdf_hash: str) -> dict:
+    """
+    Check if PDF with this hash already exists
+    Look up hash in uploaded_pdfs.json
+    
+    Returns:
+        dict: {"exists": bool, "filename": str, "timestamp": str} or None
+    """
+    metadata = load_uploaded_pdfs_metadata()
+    
+    if pdf_hash in metadata:
+        return {
+            "exists": True,
+            "filename": metadata[pdf_hash]["filename"],
+            "timestamp": metadata[pdf_hash]["timestamp"]
+        }
+    return {"exists": False}
+
+def register_uploaded_pdf(pdf_hash: str, pdf_filename: str):
+    """
+    Register a newly uploaded PDF in metadata
+    
+    This tracks:
+    - PDF hash (to detect duplicates)
+    - Original filename
+    - Upload timestamp
+    - Number of chunks created
+    """
+    metadata = load_uploaded_pdfs_metadata()
+    
+    metadata[pdf_hash] = {
+        "filename": pdf_filename,
+        "timestamp": datetime.now().isoformat(),
+        "chunks": 0  # Will be updated by add_pdf_to_vectorstore
+    }
+    
+    save_uploaded_pdfs_metadata(metadata)
+    print(f"✅ Registered PDF: {pdf_filename} (hash: {pdf_hash[:8]}...)")
+
+def update_pdf_chunk_count(pdf_hash: str, chunk_count: int):
+    """Update the number of chunks for a PDF"""
+    metadata = load_uploaded_pdfs_metadata()
+    if pdf_hash in metadata:
+        metadata[pdf_hash]["chunks"] = chunk_count
+        save_uploaded_pdfs_metadata(metadata)
+
+# ===========================
+# PDF DELETION FUNCTIONALITY
+# ===========================
+
+def get_uploaded_pdfs_list():
+    """
+    Get list of all uploaded PDFs with details
+    
+    Returns:
+        list: [{"filename": "doc.pdf", "chunks": 50, "timestamp": "2025-01-13"}, ...]
+    """
+    metadata = load_uploaded_pdfs_metadata()
+    
+    pdf_list = []
+    for pdf_hash, info in metadata.items():
+        pdf_list.append({
+            "hash": pdf_hash,
+            "filename": info["filename"],
+            "chunks": info.get("chunks", 0),
+            "timestamp": info["timestamp"][:10]  # Just the date
+        })
+    
+    # Sort by timestamp (newest first)
+    pdf_list.sort(key=lambda x: x["timestamp"], reverse=True)
+    
+    return pdf_list
+
+def delete_pdf_from_vectorstore(pdf_hash: str):
+    """
+    Remove all chunks from a specific PDF with enhanced error handling
+    """
+    global pdf_vectorstore
+    
+    # ========================================
+    # SAFETY CHECK: Validate vectorstore exists
+    # ========================================
+    if pdf_vectorstore is None or pdf_vectorstore.index.ntotal == 0:
+        logger.error("❌ PDF vectorstore is empty or not initialized")
+        return {
+            "success": False,
+            "message": "No PDFs in system to delete",
+            "deleted_chunks": 0
+        }
+    
+    # Load metadata
+    metadata = load_uploaded_pdfs_metadata()
+    
+    if pdf_hash not in metadata:
+        return {
+            "success": False,
+            "message": "PDF not found in system",
+            "deleted_chunks": 0
+        }
+    
+    pdf_filename = metadata[pdf_hash]["filename"]
+    logger.info(f"\n{'='*60}")
+    logger.info(f"🗑️ DELETING PDF: {pdf_filename}")
+    logger.info(f"{'='*60}\n")
+    
+    # Get current vectorstore size
+    total_chunks_before = pdf_vectorstore.index.ntotal
+    
+    # ========================================
+    # SAFETY CHECK: Ensure docstore exists
+    # ========================================
+    if not hasattr(pdf_vectorstore, 'docstore') or not hasattr(pdf_vectorstore.docstore, '_dict'):
+        logger.error("❌ Vectorstore docstore not properly initialized")
+        return {
+            "success": False,
+            "message": "Vectorstore structure error",
+            "deleted_chunks": 0
+        }
+    
+    # Get all documents from vectorstore
+    all_ids = list(pdf_vectorstore.docstore._dict.keys())
+    
+    logger.info(f"📊 Current total chunks: {total_chunks_before}")
+    logger.info(f"🔍 Searching for chunks with hash: {pdf_hash[:8]}...")
+    
+    # Filter: Keep only documents NOT from this PDF
+    docs_to_keep = []
+    deleted_count = 0
+    
+    for doc_id in all_ids:
+        doc = pdf_vectorstore.docstore._dict[doc_id]
+        
+        # Check if this chunk belongs to the PDF we're deleting
+        if doc.metadata.get("pdf_hash") == pdf_hash:
+            deleted_count += 1
+            logger.info(f"  ❌ Removing chunk {deleted_count}: {doc.metadata.get('chunk_id')}")
+        else:
+            docs_to_keep.append(doc)
+    
+    # ========================================
+    # SAFETY CHECK: Warn if nothing deleted
+    # ========================================
+    if deleted_count == 0:
+        logger.warning(f"⚠️ No chunks found for hash {pdf_hash[:8]}")
+        logger.warning("   This might indicate a metadata mismatch")
+        return {
+            "success": False,
+            "message": f"No chunks found for {pdf_filename} (possible metadata error)",
+            "deleted_chunks": 0
+        }
+    
+    logger.info(f"\n📉 Chunks to delete: {deleted_count}")
+    logger.info(f"📈 Chunks to keep: {len(docs_to_keep)}")
+    
+    # Rebuild vectorstore
+    if docs_to_keep:
+        logger.info("🔄 Rebuilding vectorstore with remaining documents...")
+        pdf_vectorstore = FAISS.from_documents(docs_to_keep, embeddings)
+    else:
+        logger.info("🔄 No documents left, creating fresh vectorstore...")
+        pdf_vectorstore = FAISS.from_texts(["dummy_pdf_init"], embeddings)
+    
+    # Save rebuilt vectorstore
+    pdf_vectorstore.save_local(PDF_VECTORSTORE_PATH)
+    
+    # Update metadata (remove this PDF)
+    del metadata[pdf_hash]
+    save_uploaded_pdfs_metadata(metadata)
+    
+    # Delete physical file if exists
+    for filename in os.listdir(PDF_FOLDER):
+        if pdf_hash[:8] in filename or pdf_filename in filename:
+            file_path = os.path.join(PDF_FOLDER, filename)
+            try:
+                os.remove(file_path)
+                logger.info(f"🗑️ Deleted physical file: {filename}")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not delete file: {e}")
+    
+    logger.info(f"\n✅ PDF DELETED SUCCESSFULLY!")
+    logger.info(f"📊 New total chunks: {pdf_vectorstore.index.ntotal}")
+    logger.info(f"{'='*60}\n")
+    
+    return {
+        "success": True,
+        "message": f"Successfully deleted '{pdf_filename}'",
+        "deleted_chunks": deleted_count
+    }
+
+def delete_all_pdfs():
+    """
+    Clear entire PDF vectorstore (nuclear option)
+    
+    Use case: Reset system, clear all uploaded PDFs
+    """
+    global pdf_vectorstore
+    
+    logger.warning("⚠️ DELETING ALL PDFs FROM SYSTEM")
+    
+    # Create fresh vectorstore
+    pdf_vectorstore = FAISS.from_texts(["dummy_pdf_init"], embeddings)
+    pdf_vectorstore.save_local(PDF_VECTORSTORE_PATH)
+    
+    # Clear metadata
+    save_uploaded_pdfs_metadata({})
+    
+    # Delete all physical files
+    for filename in os.listdir(PDF_FOLDER):
+        file_path = os.path.join(PDF_FOLDER, filename)
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            logger.warning(f"Could not delete {filename}: {e}")
+    
+    logger.info("✅ All PDFs deleted from system")
+    
+    return {
+        "success": True,
+        "message": "All PDFs cleared from system"
+    }
+
+# ===========================
+# PDF Processing Functions
+# ===========================
+def extract_text_from_pdf(pdf_file) -> str:
+
+    """
+    Convert PDF pages to plain text
+    Extract text from uploaded PDF using PyPDF2
+    (Same concept as your create_embeddings.py reads yaml)
+    
+    Args:
+        pdf_file: Streamlit UploadedFile object
+    
+    Returns:
+        str: Extracted text from all pages
+    """
+    try:
+        pdf_reader = PdfReader(pdf_file)
+        text = ""
+        
+        print(f"📄 Processing PDF with {len(pdf_reader.pages)} pages")
+        
+        for page_num, page in enumerate(pdf_reader.pages, 1):
+            page_text = page.extract_text() # Extract text from page
+            if page_text: 
+                # Add page separator for context
+                text += f"\n--- Page {page_num} ---\n{page_text}"
+        
+        print(f"✅ Extracted {len(text)} characters from PDF")
+        return text
+    
+    except Exception as e:
+        logger.error(f"❌ PDF extraction failed: {e}")
+        return ""
+
+
+## TEXT CHUNKING PROCESS HAPPEN HERE 
+def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list:
+    """
+    LLMs have context limits; chunks make retrieval precise
+    RecursiveCharacterTextSplitter from LangChain
+    Split text into overlapping chunks
+    (Similar to how your create_embeddings.py chunks the yaml)
+    
+    Args:
+        text: Full document text
+        chunk_size: Characters per chunk
+        overlap: Overlapping characters
+    
+    Returns:
+        list: List of text chunks
+    """
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=overlap, 
+        #         **Problem without overlap:**
+        # ```
+        # Chunk 1: "Market basket analysis is used"
+        # Chunk 2: "in retail to discover patterns"
+        #          ↑ Context break! "used" where?
+        # ```
+
+        # **Solution with overlap:**
+        # ```
+        # Chunk 1: "Market basket analysis is used in retail"
+        # Chunk 2: "is used in retail to discover patterns"
+        #          ↑ 50 chars overlap preserves context
+
+        length_function=len,
+        separators=["\n\n", "\n", ". ", " ", ""]
+    )
+    
+    chunks = text_splitter.split_text(text)
+    print(f"📦 Created {len(chunks)} chunks from text")
+    
+    return chunks
+
+
+def save_uploaded_pdf(uploaded_file, session_id: str = "default") -> str:
+    """Save uploaded PDF to disk"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{session_id}_{timestamp}_{uploaded_file.name}"
+    filepath = os.path.join(PDF_FOLDER, filename)
+    
+    with open(filepath, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    
+    print(f"💾 Saved PDF: {filepath}")
+    return filepath
+
+def add_pdf_to_vectorstore(pdf_file, pdf_filename: str):
+    """
+    Process PDF and add to vectorstore with duplicate prevention
+    
+    WORKFLOW:
+    1. Generate PDF hash
+    2. Check if already uploaded (duplicate prevention)
+    3. Extract text from PDF
+    4. Chunk text
+    5. Create embeddings with metadata (including pdf_hash)
+    6. Add to vectorstore
+    7. Register in metadata system
+    8. Update chunk count
+    
+    Returns:
+        dict: {
+            "success": bool,
+            "duplicate": bool, 
+            "message": str,
+            "chunks": int
+        }
+    """
+    global pdf_vectorstore
+    
+    print(f"\n{'='*60}")
+    print(f"🔵 PDF UPLOAD PROCESS STARTED")
+    print(f"{'='*60}")
+    
+    # ========================================
+    # STEP 1: Generate PDF hash for duplicate detection
+    # ========================================
+    pdf_hash = get_pdf_hash(pdf_file)
+    print(f"📌 PDF Hash: {pdf_hash[:16]}...")
+    
+    # ========================================
+    # STEP 2: Check for duplicates
+    # ========================================
+    duplicate_check = is_pdf_already_uploaded(pdf_hash)
+    
+    if duplicate_check["exists"]:
+        logger.warning(f"⚠️ DUPLICATE PDF DETECTED")
+        logger.warning(f"   Original filename: {duplicate_check['filename']}")
+        logger.warning(f"   Uploaded on: {duplicate_check['timestamp']}")
+        
+        return {
+            "success": False,
+            "duplicate": True,
+            "message": f"This PDF was already uploaded on {duplicate_check['timestamp'][:10]}",
+            "chunks": 0
+        }
+    
+    print(f"✅ No duplicate found - proceeding with upload")
+    
+    # ========================================
+    # STEP 3: Extract text from PDF
+    # ========================================
+    print(f"\n📄 PROCESSING: {pdf_filename}")
+    text = extract_text_from_pdf(pdf_file)
+    
+    if not text.strip():
+        print("❌ No text extracted from PDF")
+        return {
+            "success": False,
+            "duplicate": False,
+            "message": "No text could be extracted from PDF",
+            "chunks": 0
+        }
+    
+    print(f"✅ Extracted {len(text)} characters")
+    
+    # ========================================
+    # STEP 4: Chunk text
+    # ========================================
+    chunks = chunk_text(text, chunk_size=500, overlap=50)
+    print(f"✅ Created {len(chunks)} chunks")
+    
+    # ========================================
+    # STEP 5: Create metadata with pdf_hash (CRITICAL!)
+    # ========================================
+    metadatas = []
+    for i, chunk in enumerate(chunks):
+        metadatas.append({
+            "source": pdf_filename,
+            "chunk_id": i,
+            "pdf_hash": pdf_hash,  # ✅ CRITICAL: Needed for deletion
+            "timestamp": datetime.now().isoformat()
+        })
+    
+    print(f"✅ Created metadata for {len(chunks)} chunks")
+    
+    # ========================================
+    # STEP 6: Add to vectorstore
+    # ========================================
+    print(f"\n🔄 Adding chunks to FAISS vectorstore...")
+    chunks_before = pdf_vectorstore.index.ntotal
+    
+    pdf_vectorstore.add_texts(chunks, metadatas=metadatas)
+    pdf_vectorstore.save_local(PDF_VECTORSTORE_PATH)
+    
+    chunks_after = pdf_vectorstore.index.ntotal
+    print(f"✅ Vectorstore updated: {chunks_before} → {chunks_after} chunks")
+    
+    # ========================================
+    # STEP 7: Register PDF in metadata system
+    # ========================================
+    print(f"\n📝 Registering PDF in metadata system...")
+    register_uploaded_pdf(pdf_hash, pdf_filename)
+    
+    # ========================================
+    # STEP 8: Update chunk count
+    # ========================================
+    update_pdf_chunk_count(pdf_hash, len(chunks))
+    
+    print(f"\n✅ PDF SUCCESSFULLY PROCESSED!")
+    print(f"📊 Final Stats:")
+    print(f"   - PDF Hash: {pdf_hash[:8]}...")
+    print(f"   - Chunks created: {len(chunks)}")
+    print(f"   - Total chunks in system: {pdf_vectorstore.index.ntotal}")
+    print(f"{'='*60}\n")
+    
+    return {
+        "success": True,
+        "duplicate": False,
+        "message": f"Successfully processed {pdf_filename}",
+        "chunks": len(chunks)
+    }
+
+def search_pdf_documents(question: str, top_k: int = 3):
+    """
+    Search PDF vectorstore for relevant context
+    (Same as your retrieve_context() for SQL metadata)
+    Args:
+        question: User's question
+        top_k: Number of top chunks to retrieve
+    
+    Returns:
+        dict: Contains 'context' and 'sources'
+    """
+    print(f"\n🔍 Searching PDF documents for: '{question}'")
+    
+    # Search vectorstore (same as: faiss_index.search(q_emb, top_k))
+    results = pdf_vectorstore.similarity_search_with_score(question, k=top_k)
+    
+    if not results:
+        print("❌ No relevant documents found")
+        return None
+    
+    # Extract chunks and sources
+    context_chunks = []
+    sources = set()
+    
+    for doc, score in results:
+        print(f"  📄 Found chunk (similarity: {score:.4f}) from {doc.metadata.get('source', 'Unknown')}")
+        context_chunks.append(doc.page_content)
+        sources.add(doc.metadata.get('source', 'Unknown'))
+    
+    combined_context = "\n\n---\n\n".join(context_chunks)
+    
+    print(f"✅ Retrieved {len(results)} chunks from {len(sources)} document(s)")
+    
+    return {
+        "context": combined_context,
+        "sources": list(sources)
+    }
+
+
+def answer_from_pdf(question: str):
+    """
+    Generate answer from PDF content using Azure API
+    (Same as your generate_sql() but for PDF Q&A)
+    
+    Args:
+        question: User's question
+    
+    Returns:
+        dict: Contains 'answer' and 'sources'
+    """
+    # Step 1: Retrieve relevant context (like SQL RAG retrieval)
+    search_results = search_pdf_documents(question, top_k=3)
+    
+    if not search_results:
+        return {
+            "answer": "I couldn't find any relevant information in the uploaded PDFs. Please make sure you've uploaded a PDF first.",
+            "sources": []
+        }
+    
+    context = search_results["context"]
+    sources = search_results["sources"]
+    
+    # Step 2: Create prompt for LLM (similar to your SQL prompt)
+    prompt = f"""
+You are an AI assistant helping users understand PDF documents.
+
+Use the context below to answer the user's question. 
+
+IMPORTANT RULES:
+- Answer directly and naturally
+- Do NOT start with phrases like "Based on the provided text" or "According to the document"
+- If the context doesn't contain the answer, say "I don't have enough information to answer this question"
+- Be concise but complete
+
+CONTEXT FROM PDF:
+{context}
+
+USER QUESTION:
+{question}
+
+ANSWER:
+"""
+    
+    # Step 3: Call Azure API (same as your call_azure_api())
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant that answers questions based on PDF documents."},
+        {"role": "user", "content": prompt}
+    ]
+    
+    print("🤖 Generating answer from PDF context...")
+    answer = call_azure_api(messages)
+    
+    return {
+        "answer": answer,
+        "sources": sources
+    }
+# ===========================
+# 3 ENVIRONMENT & LOGGING
 # ===========================
 os.makedirs("logs", exist_ok=True)
 logger = logging.getLogger()
@@ -213,7 +832,7 @@ if "db_schema" not in st.session_state:
 # ===========================
 def call_azure_api(messages, model=AZURE_MODEL):
     url = f"{AZURE_ENDPOINT}/chat/completions?api-version={AZURE_API_VERSION}"
-    payload = {"messages": messages, "model": model, "max_tokens": 2000, "temperature": 0.0}
+    payload = {"messages" : messages, "model": model, "max_tokens": 2000, "temperature": 0.0}
     headers = {"Content-Type": "application/json", "api-key": AZURE_API_KEY}
     response = requests.post(url, headers=headers, json=payload)
     if response.status_code == 200:
@@ -386,7 +1005,7 @@ def enhance_question_with_context(question: str) -> str:
     enhanced = question
     question_lower = question.lower()
 
-        # ========================================
+    # ========================================
     # TREND QUERIES = Full Year (12 months)
     # ========================================
     if 'trend' in question_lower:
@@ -722,14 +1341,111 @@ OUTPUT FORMAT:
     return call_azure_api(messages)
 
 # ===========================
-# 7. STREAMLIT UI
+# 7. STREAMLIT UI (ENHANCED WITH PDF)
 # ===========================
-st.title("Jarvis ChatBot")
+st.title("🤖 Jarvis ChatBot")
 
+# ===========================
+# SIDEBAR
+# ===========================
 st.sidebar.markdown("---")
-st.sidebar.caption(f"Corpus size: {vectorstore.index.ntotal} saved answers")
+st.sidebar.markdown("### 📊 System Stats")
+st.sidebar.caption(f"💬 Corpus size: {vectorstore.index.ntotal} saved answers")
+st.sidebar.caption(f"📚 PDF chunks size: {pdf_vectorstore.index.ntotal} chunks")
 
-user_input = st.text_input("Ask your question")
+# ===========================
+# SIDEBAR - PDF UPLOAD SECTION
+# ===========================
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📄 Upload PDF Documents")
+uploaded_file = st.sidebar.file_uploader(
+    "Upload a PDF to chat with",
+    type=["pdf"],
+    help="Upload PDF files to ask questions about their content"
+)
+
+if uploaded_file is not None:
+    # Show file info
+    st.sidebar.info(f"📎 Selected: {uploaded_file.name} ({uploaded_file.size / 1024:.1f} KB)")
+    
+    if st.sidebar.button("📥 Process PDF", type="primary"):
+        with st.spinner(f"Processing {uploaded_file.name}..."):
+            
+            # Step 1: Save physical file (optional - for backup)
+            filepath = save_uploaded_pdf(uploaded_file, session_id="main")
+            print(f"💾 Saved to: {filepath}")
+            
+            # Step 2: Process and add to vectorstore
+            result = add_pdf_to_vectorstore(uploaded_file, uploaded_file.name)
+            
+            # Step 3: Show result
+            if result["success"]:
+                st.sidebar.success(f"✅ {uploaded_file.name} processed successfully!")
+                st.sidebar.info(f"📊 Added {result['chunks']} chunks")
+                st.sidebar.info(f"📚 Total PDF chunks: {pdf_vectorstore.index.ntotal}")
+                
+                # Force UI refresh to show in management section
+                st.rerun()
+                
+            elif result["duplicate"]:
+                st.sidebar.warning(f"⚠️ Duplicate PDF Detected!")
+                st.sidebar.info(result["message"])
+                st.sidebar.info("💡 This PDF is already in the system.")
+                
+            else:
+                st.sidebar.error(f"❌ Processing Failed")
+                st.sidebar.error(result["message"])
+
+
+# ===========================
+# PDF MANAGEMENT SECTION
+# ===========================
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📚 Manage Uploaded PDFs")
+
+# Get list of uploaded PDFs
+uploaded_pdfs = get_uploaded_pdfs_list()
+
+if uploaded_pdfs:
+    st.sidebar.markdown(f"**Total PDFs:** {len(uploaded_pdfs)}")
+    st.sidebar.markdown(f"**Total Chunks:** {pdf_vectorstore.index.ntotal}")
+    
+    # Show each PDF with delete button
+    for pdf in uploaded_pdfs:
+        with st.sidebar.expander(f"📄 {pdf['filename']}", expanded=False):
+            st.markdown(f"**Uploaded:** {pdf['timestamp']}")
+            st.markdown(f"**Chunks:** {pdf['chunks']}")
+            st.markdown(f"**Hash:** `{pdf['hash'][:8]}...`")
+            
+            if st.button("🗑️ Delete This PDF", key=f"delete_{pdf['hash']}", type="secondary"):
+                with st.spinner(f"Deleting {pdf['filename']}..."):
+                    result = delete_pdf_from_vectorstore(pdf['hash'])
+                
+                if result["success"]:
+                    st.success(f"✅ {result['message']}")
+                    st.info(f"Removed {result['deleted_chunks']} chunks")
+                    st.rerun()  # Refresh UI
+                else:
+                    st.error(f"❌ {result['message']}")
+    
+    # Delete All button
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("⚠️ Danger Zone", expanded=False):
+        if st.button("🗑️ Delete All PDFs", type="secondary"):
+            if st.checkbox("✅ I understand this will delete all PDFs"):
+                with st.spinner("Deleting all PDFs..."):
+                    result = delete_all_pdfs()
+                st.success("✅ All PDFs cleared!")
+                st.rerun()
+else:
+    st.sidebar.info("No PDFs uploaded yet")
+    st.sidebar.caption("👆 Upload a PDF above to get started")
+         
+
+# ===========================
+# MAIN CHAT INTERFACE
+# ===========================
+user_input = st.text_input("💬 Ask your question")
 
 if st.button("Ask"):
     if not user_input.strip():
@@ -741,7 +1457,28 @@ if st.button("Ask"):
     print(f"Question: {user_input.strip()}")
     
     st.session_state.current_question = user_input.strip()
-    is_db_question = any(k in user_input.lower() for k in ["table", "count", "rows", "sql", "select", "loan", "appmain"])
+    
+    # # Detect question type
+    # Detect question type with better logic
+    is_db_question = any(k in user_input.lower() for k in 
+                        ["table", "count", "rows", "sql", "select", "loan", "appmain", 
+                        "database", "query", "DTM", "DTC", "FSL", "vantage", "fico"])
+
+    is_pdf_question = any(k in user_input.lower() for k in 
+                        ["pdf", "document", "uploaded", "file", "page", "attachment"]) and pdf_vectorstore.index.ntotal > 1
+
+    # If question is very short (like "hi", "hello"), force general chat
+    if len(user_input.strip()) < 10 and not is_db_question and not is_pdf_question:
+        is_general_chat = True
+    else:
+        is_general_chat = not is_db_question and not is_pdf_question
+
+    print(f"\n🔍 MODE DETECTION:")
+    print(f"  Question: '{user_input}'")
+    print(f"  is_db_question: {is_db_question}")
+    print(f"  is_pdf_question: {is_pdf_question}")
+    print(f"  is_general_chat: {is_general_chat}")
+    print(f"  PDF chunks available: {pdf_vectorstore.index.ntotal}")
 
     # Reset from_corpus flag
     st.session_state.from_corpus = False
@@ -750,10 +1487,13 @@ if st.button("Ask"):
     # DEBUG: Print session state
     print(f"Session state reset: from_corpus={st.session_state.from_corpus}")
 
+    # ========================================
+    # MODE 1: DATABASE QUESTIONS
+    # ========================================
     if is_db_question:
-        st.subheader("DB Mode")
+        st.subheader("🗄️ DB Mode")
 
- # Check corpus cache
+        # Check corpus cache
         cached = search_corpus(user_input)
         if cached:
             st.info("💾 Answer retrieved from corpus memory (previous interaction)")
@@ -787,8 +1527,41 @@ if st.button("Ask"):
                     print(f"Answer length: {len(final_answer)} characters")
                     print(f"from_corpus flag: {st.session_state.get('from_corpus', 'NOT SET')}")
 
+    # ========================================
+    # MODE 2: PDF QUESTIONS 
+    # ========================================
+    elif is_pdf_question:
+        st.subheader("📄 PDF Document Mode")
+        
+        # Check corpus cache first
+        cached = search_corpus(user_input)
+        if cached:
+            st.info("💾 Answer retrieved from corpus memory (previous interaction)")
+            st.write(cached["answer"])
+            st.session_state.current_answer = cached["answer"]
+            st.session_state.from_corpus = True
+        else:
+            # Generate answer from PDF
+            with st.spinner("Searching PDF documents..."):
+                result = answer_from_pdf(user_input)
+            
+            # Display answer
+            st.write(result["answer"])
+            
+            # Display sources
+            if result["sources"]:
+                st.markdown("---")
+                st.markdown("**📚 Sources:**")
+                for source in result["sources"]:
+                    st.markdown(f"- {source}")
+            
+            st.session_state.current_answer = result["answer"]
+
+    # ========================================
+    # MODE 3: GENERAL CHAT
+    # ========================================
     else:
-        st.subheader("General Chat Mode")
+        st.subheader("💬 General Chat Mode")
         cached = search_corpus(user_input)
         if cached:
             st.info("💾 Answer retrieved from corpus memory (previous interaction)")
@@ -801,7 +1574,7 @@ if st.button("Ask"):
             st.session_state.current_answer = answer
 
 # ========================
-# FEEDBACK SECTION (Always at the end)
+# FEEDBACK SECTION (Keep your existing code)
 # ========================
 print(f"\n🔍 FEEDBACK SECTION CHECK:")
 print(f"  current_answer exists: {bool(st.session_state.get('current_answer'))}")
